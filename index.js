@@ -16,15 +16,17 @@ app.all('/', (req, res) => {
 let file_context = ""
 fs.readFile("./file_context.txt", 'utf8', function(err, data) {
   if (err) throw err;
-  console.log(file_context);
   file_context = data;
 });
 
 app.get('/gpt/:text', async (req, res) => {
     const text = req.params.text
     const { Configuration, OpenAIApi } = require("openai");
+    const messages = [
+        {role: "system", content: file_context},
+        {role: "user", content: text}
+    ];
 
-    console.log(process.env.OPENAI_API_KEY)
     const configuration = new Configuration({
       apiKey: process.env.OPENAI_API_KEY,
     });
@@ -33,9 +35,9 @@ app.get('/gpt/:text', async (req, res) => {
     const prompt = file_context + "\n\nQ:" + text + "\nA:";
     console.log(prompt);
     
-    const response = await openai.createCompletion({
-      model: "text-davinci-003",
-      prompt: prompt,
+    const response = await openai.createChatCompletion({
+      model: "gpt-4",
+      messages: messages,
       temperature: 0.5,
       max_tokens: 128,
       top_p: 1,
@@ -43,7 +45,7 @@ app.get('/gpt/:text', async (req, res) => {
       presence_penalty: 0,
     });
     if (response.data.choices) {
-        res.send(response.data.choices[0].text)
+        res.send(response.data.choices[0].message.content)
     } else {
         res.send("Something went wrong. Try again later!")
     }
